@@ -1,4 +1,4 @@
-unit F_PreviewHTML;
+ï»¿unit F_PreviewHTML;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 interface
@@ -70,39 +70,15 @@ type
 var
   frmHTMLPreview: TfrmHTMLPreview;
 
-procedure ODS(const DebugOutput: string); overload;
-procedure ODS(const DebugOutput: string; const Args: array of const); overload;
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 implementation
 uses
   ShellAPI, ComObj, StrUtils, IOUtils, Masks, MSHTML,
   RegExpr, L_SpecialFolders,
+  Debug,
   WebBrowser, SciSupport, U_Npp_PreviewHTML;
 
 {$R *.dfm}
-
-var
-  OutputLog: TStreamWriter;
-
-{ ------------------------------------------------------------------------------------------------ }
-procedure ODS(const DebugOutput: string); overload;
-begin
-  OutputDebugString(PChar('PreviewHTML['+IntToHex(GetCurrentThreadId, 4)+']: ' + DebugOutput));
-  if OutputLog = nil then begin
-    OutputLog := TStreamWriter.Create(TFileStream.Create(ChangeFileExt(TSpecialFolders.DLLFullName, '.log'), fmCreate or fmShareDenyWrite), TEncoding.UTF8);
-    OutputLog.OwnStream;
-    OutputLog.BaseStream.Seek(0, soFromEnd);
-  end;
-  OutputLog.Write(FormatDateTime('yyyy-MM-dd hh:nn:ss.zzz: ', Now));
-  OutputLog.WriteLine(DebugOutput);
-end {ODS};
-{ ------------------------------------------------------------------------------------------------ }
-procedure ODS(const DebugOutput: string; const Args: array of const); overload;
-begin
-  ODS(Format(DebugOutput, Args));
-end{ODS};
-
 
 { ================================================================================================ }
 
@@ -184,7 +160,7 @@ ODS('FreeAndNil(FFilterThread);');
       FilterName := DetermineCustomFilter;
       IsCustom := Length(FilterName) > 0;
 
-      {$MESSAGE HINT 'TODO: Find a way to communicate why there is no preview, depending on the situation — MCO 22-01-2013'}
+      {$MESSAGE HINT 'TODO: Find a way to communicate why there is no preview, depending on the situation â€” MCO 22-01-2013'}
 
       if IsXML or IsHTML or IsCustom then begin
         CodePage := SendMessage(hScintilla, SCI_GETCODEPAGE, 0, 0);
@@ -441,7 +417,7 @@ begin
         end;
       end;
 
-      {$MESSAGE HINT 'TODO: Test lexer — MCO 22-01-2013'}
+      {$MESSAGE HINT 'TODO: Test lexer â€” MCO 22-01-2013'}
 
       if Match then
         Exit(Names[i]);
@@ -720,10 +696,5 @@ begin
   self.UpdateDisplayInfo(StringReplace(Text, 'about:blank', '', [rfReplaceAll]));
 end;
 
-
-initialization
-
-finalization
-  OutputLog.Free;
 
 end.

@@ -29,7 +29,8 @@ uses
   L_VersionInfoW in '..\common\L_VersionInfoW.pas',
   L_SpecialFolders in '..\common\L_SpecialFolders.pas',
   RegExpr in '..\common\RegExpr.pas',
-  U_CustomFilter in '..\U_CustomFilter.pas';
+  U_CustomFilter in '..\U_CustomFilter.pas',
+  Debug;
 
 {$R *.res}
 
@@ -41,3 +42,4 @@ begin
   { Now invoke the procedure to reflect that the DLL is attaching to the process }
   DLLEntryPoint(DLL_PROCESS_ATTACH);
 end.
+

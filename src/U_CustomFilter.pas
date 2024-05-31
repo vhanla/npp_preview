@@ -1,4 +1,4 @@
-unit U_CustomFilter;
+ï»¿unit U_CustomFilter;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 interface
@@ -38,6 +38,7 @@ implementation
 uses
   IOUtils,
   process, Pipes,
+  Debug,
   F_PreviewHTML;
 
 { TCustomFilterThread }
@@ -97,7 +98,7 @@ begin
       OutputMethod := cotStandardOutput;
     end;
 
-    {$MESSAGE HINT 'TODO: allow for explicit overrides in the filter settings — Martijn 2013-01-26'}
+    {$MESSAGE HINT 'TODO: allow for explicit overrides in the filter settings â€” Martijn 2013-01-26'}
 
     if Terminated then
       Exit;
@@ -108,7 +109,7 @@ begin
       Input := TStringStream.Create(FData.Contents, FData.Encoding, False);
       if OutputMethod = cotInputFile then begin
         OutputMethod := cotStandardOutput;
-        {$MESSAGE HINT 'TODO: warn the user that this filter is misconfigured — Martijn 2013-01-26'}
+        {$MESSAGE HINT 'TODO: warn the user that this filter is misconfigured â€” Martijn 2013-01-26'}
       end;
       if OutputMethod = cotOutputFile then
         OutFile := TPath.GetTempFileName

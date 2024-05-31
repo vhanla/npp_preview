@@ -9,8 +9,10 @@ inherited frmHTMLPreview: TfrmHTMLPreview
   OnHide = FormHide
   OnKeyPress = FormKeyPress
   OnShow = FormShow
+  ExplicitWidth = 520
+  ExplicitHeight = 461
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 14
   object pnlButtons: TPanel
     Left = 0
     Top = 379
@@ -105,8 +107,10 @@ inherited frmHTMLPreview: TfrmHTMLPreview
         OnDocumentComplete = wbIEDocumentComplete
         OnStatusBar = wbIEStatusBar
         OnNewWindow3 = wbIENewWindow3
+        ExplicitWidth = 557
+        ExplicitHeight = 418
         ControlData = {
-          4C000000173400002C2700000000000000000000000000000000000000000000
+          4C0000002D2F00007A2300000000000000000000000000000000000000000000
           000000004C000000000000000000000001000000E0D057007335CF11AE690800
           2B2E12620B000000000000004C0000000114020000000000C000000000000046
           8000000000000000000000000000000000000000000000000000000000000000

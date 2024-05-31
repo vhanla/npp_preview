@@ -127,7 +127,7 @@ begin
   self.HandleNeeded;
   //self.Visible := true;
 
-  FillChar(self.ToolbarData,sizeof(TToolbarData),0);
+  self.ToolbarData := Default(TToolbarData);
 
   if (not self.Icon.Empty) then
   begin
@@ -151,14 +151,14 @@ begin
   GetModuleFileNameW(HInstance, self.ToolbarData.ModuleName, 1000);
   StringToWideChar(ExtractFileName(self.ToolbarData.ModuleName), self.ToolbarData.ModuleName, 1000);
   StringToWideChar('', self.ToolbarData.AdditionalInfo, 1);
-  {r:=}SendMessageW(self.Npp.NppData.NppHandle, NPPM_DMMREGASDCKDLG, 0, Integer(@self.ToolbarData));
+  {r:=}SendMessageW(self.Npp.NppData.NppHandle, NPPM_DMMREGASDCKDLG, 0, LPARAM(@self.ToolbarData));
 {$ELSE}
   StrCopy(self.ToolbarData.Title, PChar(self.Caption));
   GetModuleFileNameA(HInstance, self.ToolbarData.ModuleName, 1000);
   StrLCopy(self.ToolbarData.ModuleName, PChar(ExtractFileName(self.ToolbarData.ModuleName)), 1000);
   StrCopy(self.ToolbarData.AdditionalInfo, PChar(''));
   {r:=}
-  SendMessageA(self.Npp.NppData.NppHandle, NPPM_DMMREGASDCKDLG, 0, Integer(@self.ToolbarData));
+  SendMessageA(self.Npp.NppData.NppHandle, NPPM_DMMREGASDCKDLG, 0, LPARAM(@self.ToolbarData));
 {$ENDIF}
 
   self.Visible := true;

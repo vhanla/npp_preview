@@ -399,7 +399,7 @@ const
 
 type
 {$IFDEF NPPUNICODE}
-  nppString = WideString;
+  nppString = UnicodeString;
   nppChar = WChar;
   nppPChar = PWChar;
 {$ELSE}
@@ -429,7 +429,7 @@ type
   end;
 
   TCommunicationInfo = record
-    internalMsg: Cardinal;
+    internalMsg: NativeUInt;
     srcModuleName: nppPChar;
     info: Pointer;
   end;
@@ -454,7 +454,7 @@ type
     ItemName: Array[0..FuncItemNameLen-1] of nppChar;
     Func: PFUNCPLUGINCMD;
     CmdID: Integer;
-    Checked: Boolean;
+    Checked: BOOL;
     ShortcutKey: PShortcutKey;
   end;
 
@@ -473,11 +473,12 @@ type
   TNppPlugin = class(TObject)
   private
     FuncArray: array of _TFuncItem;
-    FClosingBufferID: Integer;
+    FClosingBufferID: THandle;
     FConfigDir: string;
   protected
     PluginName: nppString;
-    function GetPluginsConfigDir: string;
+    function GetPluginDllName: string; virtual;
+    function GetPluginsConfigDir: string; virtual;
     function AddFuncSeparator: Integer;
     function AddFuncItem(Name: nppString; Func: PFUNCPLUGINCMD): Integer; overload;
     function AddFuncItem(Name: nppString; Func: PFUNCPLUGINCMD; ShortcutKey: TShortcutKey): Integer; overload;
@@ -496,15 +497,15 @@ type
     // needed for DLL export.. wrappers are in the main dll file.
     procedure SetInfo(NppData: TNppData); virtual;
     function GetName: nppPChar;
-    function GetFuncsArray(var FuncsCount: Integer): Pointer;
+    function GetFuncsArray(out FuncsCount: Integer): Pointer;
     procedure BeNotified(sn: PSCNotification);
     procedure MessageProc(var Msg: TMessage); virtual;
 
     // hooks
     procedure DoNppnToolbarModification; virtual;
     procedure DoNppnShutdown; virtual;
-    procedure DoNppnBufferActivated(const BufferID: Cardinal); virtual;
-    procedure DoNppnFileClosed(const BufferID: Cardinal); virtual;
+    procedure DoNppnBufferActivated(const BufferID: THandle); virtual;
+    procedure DoNppnFileClosed(const BufferID: THandle); virtual;
     procedure DoUpdateUI(const hwnd: HWND; const updated: Integer); virtual;
     procedure DoModified(const hwnd: HWND; const modificationType: Integer); virtual;
 
@@ -516,10 +517,13 @@ type
 
     // helpers
     property ConfigDir: string  read GetPluginsConfigDir;
+    property FullFileName: string read GetPluginDllName;
   end;
 
 
 implementation
+uses
+  Debug;
 
 { TNppPlugin }
 
@@ -620,15 +624,21 @@ begin
   Line := SendMessage(self.NppData.ScintillaMainHandle, SciSupport.SCI_LINEFROMPOSITION, r, 0);
 end;
 
-function TNppPlugin.GetFuncsArray(var FuncsCount: Integer): Pointer;
+function TNppPlugin.GetFuncsArray(out FuncsCount: Integer): Pointer;
 begin
   FuncsCount := Length(self.FuncArray);
-  Result := self.FuncArray;
+  Result := @self.FuncArray[0];
 end;
 
 function TNppPlugin.GetName: nppPChar;
 begin
   Result := nppPChar(self.PluginName);
+end;
+
+function TNppPlugin.GetPluginDllName: string;
+begin
+  Result := StringOfChar(#0, 2048);
+  SetLength(Result, GetModuleFileName(HInstance, PChar(Result), Length(Result) + 1));
 end;
 
 function TNppPlugin.GetPluginsConfigDir: string;
@@ -644,7 +654,8 @@ end;
 procedure TNppPlugin.BeNotified(sn: PSCNotification);
 begin
   try
-    if HWND(sn^.nmhdr.hwndFrom) = self.NppData.NppHandle then begin
+    if sn^.nmhdr.hwndFrom = self.NppData.NppHandle then begin
+//      ODS('BeNotified from Notepad++ %d', [sn.nmhdr.code]);
       case sn.nmhdr.code of
         NPPN_TB_MODIFICATION: begin
           self.DoNppnToolbarModification;
@@ -656,7 +667,7 @@ begin
           self.DoNppnBufferActivated(sn.nmhdr.idFrom);
         end;
         NPPN_FILEBEFORECLOSE: begin
-          FClosingBufferID := SendMessage(HWND(sn.nmhdr.hwndFrom), NPPM_GETCURRENTBUFFERID, 0, 0);
+          FClosingBufferID := SendMessage(sn.nmhdr.hwndFrom, NPPM_GETCURRENTBUFFERID, 0, 0);
   //        self.DoNppnBeforeFileClose(FClosingBufferID);
         end;
         NPPN_FILECLOSED: begin
@@ -664,19 +675,20 @@ begin
         end;
       end;
     end else begin
+//      ODS('BeNotified from Scintilla %d', [sn.nmhdr.code]);
       case sn.nmhdr.code of
         SCN_MODIFIED: begin
-          Self.DoModified(HWND(sn.nmhdr.hwndFrom), sn.modificationType);
+          Self.DoModified(sn.nmhdr.hwndFrom, sn.modificationType);
         end;
         SCN_UPDATEUI: begin
-          self.DoUpdateUI(HWND(sn.nmhdr.hwndFrom), sn.updated);
+          self.DoUpdateUI(sn.nmhdr.hwndFrom, sn.updated);
         end;
       end;
     end;
     // @todo
   except
     on E: Exception do begin
-      OutputDebugString(PChar(Format('%s> %s: "%s"', [PluginName, E.ClassName, E.Message])));
+      ODS('%s> %s: "%s"', [PluginName, E.ClassName, E.Message]);
     end;
   end;
 end;
@@ -752,12 +764,12 @@ begin
   // override these
 end;
 
-procedure TNppPlugin.DoNppnBufferActivated(const BufferID: Cardinal);
+procedure TNppPlugin.DoNppnBufferActivated(const BufferID: THandle);
 begin
   // override these
 end;
 
-procedure TNppPlugin.DoNppnFileClosed(const BufferID: Cardinal);
+procedure TNppPlugin.DoNppnFileClosed(const BufferID: THandle);
 begin
   // override these
 end;

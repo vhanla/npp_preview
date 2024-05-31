@@ -4,7 +4,7 @@ begin
   DLL_PROCESS_ATTACH:
   begin
     // create the main object
-    //Npp := TDbgpNppPlugin.Create;
+//    Npp := TDbgpNppPlugin.Create;
   end;
   DLL_PROCESS_DETACH:
   begin
@@ -50,7 +50,7 @@ begin
     Npp.BeNotified(sn);
 end;
 
-function messageProc(msg: Integer; _wParam: WPARAM; _lParam: LPARAM): LRESULT; cdecl; export;
+function messageProc(msg: UINT; _wParam: WPARAM; _lParam: LPARAM): LRESULT; cdecl; export;
 var xmsg:TMessage;
 begin
   xmsg.Msg := msg;

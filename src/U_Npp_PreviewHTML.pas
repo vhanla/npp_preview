@@ -21,17 +21,15 @@ type
     procedure CommandSetIEVersion(const BrowserEmulation: Integer);
     procedure CommandOpenFile(const Filename: nppString);
     procedure CommandShowAbout;
-    procedure CommandReplaceHelloWorld;
 
     procedure DoNppnToolbarModification; override;
-    procedure DoNppnFileClosed(const BufferID: Cardinal); override;
-    procedure DoNppnBufferActivated(const BufferID: Cardinal); override;
+    procedure DoNppnFileClosed(const BufferID: THandle); override;
+    procedure DoNppnBufferActivated(const BufferID: THandle); override;
     procedure DoModified(const hwnd: HWND; const modificationType: Integer); override;
 
     function  GetSettings(const Name: string = 'Settings.ini'): TIniFile;
   end {TNppPluginPreviewHTML};
 
-procedure _FuncReplaceHelloWorld; cdecl;
 procedure _FuncShowPreview; cdecl;
 procedure _FuncOpenSettings; cdecl;
 procedure _FuncOpenFilters; cdecl;
@@ -52,13 +50,9 @@ var
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 implementation
 uses
-  WebBrowser, Registry;
+  WebBrowser, Registry,
+  Debug;
 
-{ ------------------------------------------------------------------------------------------------ }
-procedure _FuncReplaceHelloWorld; cdecl;
-begin
-  Npp.CommandReplaceHelloWorld;
-end;
 { ------------------------------------------------------------------------------------------------ }
 procedure _FuncOpenSettings; cdecl;
 begin
@@ -123,7 +117,7 @@ end;
 constructor TNppPluginPreviewHTML.Create;
 begin
   inherited;
-  self.PluginName := '&Preview HTML';
+  self.PluginName := '&Preview HTML'{$IFDEF DEBUG}+' (debug)'{$ENDIF};
 end {TNppPluginPreviewHTML.Create};
 
 { ------------------------------------------------------------------------------------------------ }
@@ -182,26 +176,24 @@ end {TNppPluginPreviewHTML.SetInfo};
 procedure TNppPluginPreviewHTML.CommandOpenFile(const Filename: nppString);
 var
   FullPath: nppString;
+  ConfigSample, DllSample: nppString;
 begin
   try
     FullPath := Npp.ConfigDir + '\PreviewHTML\' + Filename;
-    if not FileExists(FullPath) and FileExists(ChangeFileExt(FullPath, '.sample' + ExtractFileExt(FullPath))) then
-      FullPath := ChangeFileExt(FullPath, '.sample' + ExtractFileExt(FullPath));
+    if not FileExists(FullPath) then begin
+      ConfigSample := ChangeFileExt(FullPath, '.sample' + ExtractFileExt(FullPath));
+      DllSample := ChangeFilePath(ConfigSample, ExtractFileDir(FullFileName));
+      if not FileExists(ConfigSample) and FileExists(DllSample) then
+        Win32Check(CopyFile(PChar(string(DllSample)), PChar(string(ConfigSample)), True));
+      if FileExists(ConfigSample) then
+        FullPath := ConfigSample;
+    end;
     if not DoOpen(FullPath) then
       MessageBox(Npp.NppData.NppHandle, PChar(Format('Unable to open "%s".', [FullPath])), PChar(Caption), MB_ICONWARNING);
   except
     ShowException(ExceptObject, ExceptAddr);
   end;
 end {TNppPluginPreviewHTML.CommandOpenFilters};
-
-{ ------------------------------------------------------------------------------------------------ }
-procedure TNppPluginPreviewHTML.CommandReplaceHelloWorld;
-var
-  s: UTF8String;
-begin
-  s := 'Hello World';
-  SendMessage(self.NppData.ScintillaMainHandle, SCI_REPLACESEL, 0, LPARAM(PAnsiChar(s)));
-end {TNppPluginPreviewHTML.CommandReplaceHelloWorld};
 
 { ------------------------------------------------------------------------------------------------ }
 procedure TNppPluginPreviewHTML.CommandSetIEVersion(const BrowserEmulation: Integer);
@@ -272,7 +264,7 @@ begin
 end {TNppPluginPreviewHTML.DoNppnToolbarModification};
 
 { ------------------------------------------------------------------------------------------------ }
-procedure TNppPluginPreviewHTML.DoNppnBufferActivated(const BufferID: Cardinal);
+procedure TNppPluginPreviewHTML.DoNppnBufferActivated(const BufferID: THandle);
 begin
   inherited;
   if Assigned(frmHTMLPreview) and frmHTMLPreview.Visible then begin
@@ -281,7 +273,7 @@ begin
 end {TNppPluginPreviewHTML.DoNppnBufferActivated};
 
 { ------------------------------------------------------------------------------------------------ }
-procedure TNppPluginPreviewHTML.DoNppnFileClosed(const BufferID: Cardinal);
+procedure TNppPluginPreviewHTML.DoNppnFileClosed(const BufferID: THandle);
 begin
   if Assigned(frmHTMLPreview) then begin
     frmHTMLPreview.ForgetBuffer(BufferID);
