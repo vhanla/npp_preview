@@ -7,6 +7,7 @@ uses
   Windows, Messages, SysUtils, Classes, Variants, Graphics, Controls, Forms, Generics.Collections,
   Dialogs, StdCtrls, SHDocVw, OleCtrls, ComCtrls, ExtCtrls, IniFiles,
   NppPlugin, NppDockingForms,
+  WebBrowser,
   U_CustomFilter;
 
 type
@@ -62,6 +63,8 @@ type
     procedure FilterThreadTerminate(Sender: TObject);
   public
     { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    procedure ToggleDarkMode; override;
     procedure ResetTimer;
     procedure ForgetBuffer(const BufferID: TBufferID);
     procedure DisplayPreview(HTML: string; const BufferID: TBufferID);
@@ -74,19 +77,34 @@ var
 implementation
 uses
   ShellAPI, ComObj, StrUtils, IOUtils, Masks, MSHTML,
-  RegExpr, L_SpecialFolders,
+  RegExpr, ModulePath,
   Debug,
-  WebBrowser, SciSupport, U_Npp_PreviewHTML;
+  U_Npp_PreviewHTML;
 
 {$R *.dfm}
 
 { ================================================================================================ }
 
+constructor TfrmHTMLPreview.Create(AOwner: TComponent);
+begin
+  inherited;
+  self.Icon := TIcon.Create;
+  self.Icon.Handle := LoadImage(Hinstance, 'TB_PREVIEW_HTML_ICO', IMAGE_ICON, 0, 0, (LR_DEFAULTSIZE or LR_LOADTRANSPARENT));
+  self.NppDefaultDockingMask := (DWS_DF_CONT_RIGHT or DWS_USEOWNDARKMODE);
+end;
+
+{ ------------------------------------------------------------------------------------------------ }
+// Standard components respond poorly to subclassing; see, e.g.,
+// https://stackoverflow.com/a/15664777
+// https://forum.lazarus.freepascal.org/index.php?topic=22366.0
+procedure TfrmHTMLPreview.ToggleDarkMode;
+begin
+end;
+
 { ------------------------------------------------------------------------------------------------ }
 procedure TfrmHTMLPreview.FormCreate(Sender: TObject);
 begin
   FScrollPositions := TDictionary<TBufferID,TPoint>.Create;
-  self.NppDefaultDockingMask := DWS_DF_FLOATING; // whats the default docking position
   //self.KeyPreview := true; // special hack for input forms
   self.OnFloat := self.FormFloat;
   self.OnDock := self.FormDock;
@@ -102,6 +120,7 @@ procedure TfrmHTMLPreview.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FScrollPositions);
   FreeAndNil(FFilterThread);
+  FreeAndNil(Icon);
   inherited;
 end {TfrmHTMLPreview.FormDestroy};
 
@@ -122,7 +141,6 @@ end {TfrmHTMLPreview.tmrAutorefreshTimer};
 { ------------------------------------------------------------------------------------------------ }
 procedure TfrmHTMLPreview.btnRefreshClick(Sender: TObject);
 var
-  View: Integer;
   BufferID: TBufferID;
   hScintilla: THandle;
   Lexer: NativeInt;
@@ -142,13 +160,8 @@ ODS('FreeAndNil(FFilterThread);');
     FreeAndNil(FFilterThread);
     SaveScrollPos;
 
-    SendMessage(Self.Npp.NppData.NppHandle, NPPM_GETCURRENTSCINTILLA, 0, LPARAM(@View));
-    if View = 0 then begin
-      hScintilla := Self.Npp.NppData.ScintillaMainHandle;
-    end else begin
-      hScintilla := Self.Npp.NppData.ScintillaSecondHandle;
-    end;
     BufferID := SendMessage(Self.Npp.NppData.NppHandle, NPPM_GETCURRENTBUFFERID, 0, 0);
+    hScintilla := Npp.CurrentScintilla;
 
     Lexer := SendMessage(hScintilla, SCI_GETLEXER, 0, 0);
     IsHTML := (Lexer = SCLEX_HTML);
@@ -250,12 +263,7 @@ ODS('DisplayPreview(HTML: "%s"(%d); BufferID: %x)', [StringReplace(Copy(HTML, 1,
 
       {--- 2013-01-26 Martijn: the WebBrowser control has a tendency to steal the focus. We'll let
                                   the editor take it back. ---}
-      SendMessage(Self.Npp.NppData.NppHandle, NPPM_GETCURRENTSCINTILLA, 0, LPARAM(@View));
-      if View = 0 then begin
-        hScintilla := Self.Npp.NppData.ScintillaMainHandle;
-      end else begin
-        hScintilla := Self.Npp.NppData.ScintillaSecondHandle;
-      end;
+      hScintilla := Npp.CurrentScintilla;
       SendMessage(hScintilla, SCI_GRABFOCUS, 0, 0);
     end else begin
       self.UpdateDisplayInfo('');
@@ -362,8 +370,8 @@ begin
   DocLangType := -1;
   DocLanguage := '';
 
-  ForceDirectories(Npp.ConfigDir + '\PreviewHTML');
-  Filters := TIniFile.Create(Npp.ConfigDir + '\PreviewHTML\Filters.ini');
+  ForceDirectories(TNppPluginPreviewHTML(Npp).ConfigDir + '\PreviewHTML');
+  Filters := TIniFile.Create(TNppPluginPreviewHTML(Npp).ConfigDir + '\PreviewHTML\Filters.ini');
   Names := TStringList.Create;
   try
     Filters.ReadSections(Names);
@@ -433,7 +441,6 @@ function TfrmHTMLPreview.ExecuteCustomFilter(const FilterName, HTML: string; con
 var
   FilterData: TFilterData;
   DocFile: TFileName;
-  View: Integer;
   hScintilla: THandle;
   Filters: TIniFile;
   BufferEncoding: NativeInt;
@@ -447,12 +454,7 @@ begin
   FilterData.DocFile := DocFile;
   FilterData.Contents := HTML;
 
-  SendMessage(Self.Npp.NppData.NppHandle, NPPM_GETCURRENTSCINTILLA, 0, LPARAM(@View));
-  if View = 0 then begin
-    hScintilla := Self.Npp.NppData.ScintillaMainHandle;
-  end else begin
-    hScintilla := Self.Npp.NppData.ScintillaSecondHandle;
-  end;
+  hScintilla := Npp.CurrentScintilla;
   BufferEncoding := SendMessage(Npp.NppData.NppHandle, NPPM_GETBUFFERENCODING, BufferID, 0);
   case BufferEncoding of
     1, 4: FilterData.Encoding := TEncoding.UTF8;
@@ -521,7 +523,7 @@ procedure TfrmHTMLPreview.FormHide(Sender: TObject);
 begin
   SaveScrollPos;
   SendMessage(self.Npp.NppData.NppHandle, NPPM_SETMENUITEMCHECK, self.CmdID, 0);
-  self.Visible := False;
+  // self.Visible := False;
 end;
 
 { ------------------------------------------------------------------------------------------------ }

@@ -1,0 +1,3 @@
+[submodule "DelphiPluginTemplate"]
+	path = src/lib
+	url = https://bitbucket.org/rdipardo/delphiplugintemplate.git

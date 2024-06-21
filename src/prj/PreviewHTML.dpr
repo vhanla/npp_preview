@@ -10,7 +10,10 @@ library PreviewHTML;
   with your DLL. To avoid using BORLNDMM.DLL, pass string information
   using PChar or ShortString parameters. }
 
-{$R 'PreviewHTML_TB.res' 'PreviewHTML_TB.rc'}
+{$IF CompilerVersion >= 21.0}
+{$WEAKLINKRTTI ON}
+{$RTTI EXPLICIT METHODS([]) PROPERTIES([]) FIELDS([])}
+{$ENDIF}
 
 uses
   SysUtils,
@@ -18,25 +21,93 @@ uses
   Types,
   Windows,
   Messages,
-  nppplugin in '..\lib\nppplugin.pas',
-  SciSupport in '..\lib\SciSupport.pas',
-  NppForms in '..\lib\NppForms.pas' {NppForm},
-  NppDockingForms in '..\lib\NppDockingForms.pas' {NppDockingForm},
+  nppplugin in '..\lib\Source\Units\Common\nppplugin.pas',
+  NppForms in '..\lib\Source\Forms\Common\NppForms.pas' {NppForm},
+  NppDockingForms in '..\lib\Source\Forms\Common\NppDockingForms.pas' {NppDockingForm},
   U_Npp_PreviewHTML in '..\U_Npp_PreviewHTML.pas',
   F_About in '..\F_About.pas' {AboutForm},
   F_PreviewHTML in '..\F_PreviewHTML.pas' {frmHTMLPreview},
-  WebBrowser in '..\lib\WebBrowser.pas',
-  L_VersionInfoW in '..\common\L_VersionInfoW.pas',
-  L_SpecialFolders in '..\common\L_SpecialFolders.pas',
+  WebBrowser in '..\common\WebBrowser.pas',
+  VersionInfo in '..\lib\Source\Units\Common\VersionInfo.pas',
+  ModulePath in '..\lib\Source\Units\Common\ModulePath.pas',
   RegExpr in '..\common\RegExpr.pas',
   U_CustomFilter in '..\U_CustomFilter.pas',
   Debug;
 
 {$R *.res}
 
-{$Include '..\lib\NppPluginInclude.pas'}
+procedure DLLEntryPoint(dwReason: DWord);
+begin
+  case dwReason of
+  DLL_PROCESS_ATTACH:
+  begin
+  end;
+  DLL_PROCESS_DETACH:
+  begin
+    try
+      if Assigned(Npp) then
+        Npp.Free;
+    except
+      ShowException(ExceptObject, ExceptAddr);
+    end;
+  end;
+  end;
+end;
+
+procedure setInfo(NppData: TNppData); cdecl; export;
+begin
+  if Assigned(Npp) then
+    Npp.SetInfo(NppData);
+end;
+
+function getName(): nppPchar; cdecl; export;
+begin
+  if Assigned(Npp) then
+    Result := Npp.GetName
+  else
+    Result := '(plugin not initialized)';
+end;
+
+function getFuncsArray(var nFuncs:integer):Pointer;cdecl; export;
+begin
+  if Assigned(Npp) then
+    Result := Npp.GetFuncsArray(nFuncs)
+  else begin
+    Result := nil;
+    nFuncs := 0;
+  end;
+end;
+
+procedure beNotified(sn: PSCiNotification); cdecl; export;
+begin
+  if Assigned(Npp) then
+    Npp.BeNotified(sn);
+end;
+
+function messageProc(msg: UINT; _wParam: WPARAM; _lParam: LPARAM): LRESULT; cdecl; export;
+var xmsg:TMessage;
+begin
+  xmsg.Msg := msg;
+  xmsg.WParam := _wParam;
+  xmsg.LParam := _lParam;
+  xmsg.Result := 0;
+  if Assigned(Npp) then
+    Npp.MessageProc(xmsg);
+  Result := xmsg.Result;
+end;
+
+function isUnicode : Boolean; cdecl; export;
+begin
+  Result := true;
+end;
+
+exports
+  setInfo, getName, getFuncsArray, beNotified, messageProc, isUnicode;
 
 begin
+{$IFDEF DEBUG}
+  ReportMemoryLeaksOnShutdown := DebugHook <> 0;
+{$ENDIF}
   { First, assign the procedure to the DLLProc variable }
   DllProc := @DLLEntryPoint;
   { Now invoke the procedure to reflect that the DLL is attaching to the process }

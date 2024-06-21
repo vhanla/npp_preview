@@ -1,17 +1,25 @@
 unit U_Npp_PreviewHTML;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+{$WARN SYMBOL_PLATFORM OFF}
 interface
 
 uses
   SysUtils, Windows, IniFiles,
-  NppPlugin, SciSupport,
+  NppPlugin,
   F_About, F_PreviewHTML;
+
+const
+  SCLEX_HTML  = 4;
+  SCLEX_XML   = 5;
 
 type
   TNppPluginPreviewHTML = class(TNppPlugin)
   private
     FSettings: TIniFile;
+    function Caption: nppString;
+    function AddFuncItem(Name: nppString; Func: PFUNCPLUGINCMD; Checked: Boolean): Integer; overload;
+    procedure AddFuncSeparator;
   public
     constructor Create;
 
@@ -28,6 +36,8 @@ type
     procedure DoModified(const hwnd: HWND; const modificationType: Integer); override;
 
     function  GetSettings(const Name: string = 'Settings.ini'): TIniFile;
+
+    property ConfigDir: nppString read GetPluginsConfigDir;
   end {TNppPluginPreviewHTML};
 
 procedure _FuncShowPreview; cdecl;
@@ -51,6 +61,7 @@ var
 implementation
 uses
   WebBrowser, Registry,
+  ModulePath,
   Debug;
 
 { ------------------------------------------------------------------------------------------------ }
@@ -121,17 +132,35 @@ begin
 end {TNppPluginPreviewHTML.Create};
 
 { ------------------------------------------------------------------------------------------------ }
+function TNppPluginPreviewHTML.Caption: nppString;
+begin
+  Result := StringReplace(Self.PluginName, '&', '', []);
+end;
+
+{ ------------------------------------------------------------------------------------------------ }
+function TNppPluginPreviewHTML.AddFuncItem(Name: nppString; Func: PFUNCPLUGINCMD; Checked: Boolean): Integer;
+begin
+  Result := AddFuncItem(Name, Func);
+  self.FuncArray[Result].Checked := Checked;
+end;
+
+{ ------------------------------------------------------------------------------------------------ }
+procedure TNppPluginPreviewHTML.AddFuncSeparator;
+begin
+  AddFuncItem('-', nil);
+end;
+
+{ ------------------------------------------------------------------------------------------------ }
 procedure TNppPluginPreviewHTML.SetInfo(NppData: TNppData);
 var
   IEVersion: string;
   MajorIEVersion, Code, EmulatedVersion: Integer;
-  sk: TShortcutKey;
+  Psk: PShortcutKey;
 begin
   inherited;
 
-  sk.IsShift := True; sk.IsCtrl := true; sk.IsAlt := False;
-  sk.Key := 'H'; // Ctrl-Shift-H
-  self.AddFuncItem('&Preview HTML', _FuncShowPreview, sk);
+  Psk := MakeShortcutKey(True, False, True, Ord('H'));   // Ctrl-Shift-H
+  self.AddFuncItem('&Preview HTML', _FuncShowPreview, Psk);
 
   IEVersion := GetIEVersion;
   with GetSettings do begin
@@ -182,13 +211,13 @@ begin
     FullPath := Npp.ConfigDir + '\PreviewHTML\' + Filename;
     if not FileExists(FullPath) then begin
       ConfigSample := ChangeFileExt(FullPath, '.sample' + ExtractFileExt(FullPath));
-      DllSample := ChangeFilePath(ConfigSample, ExtractFileDir(FullFileName));
+      DllSample := ChangeFilePath(ConfigSample, ExtractFileDir(TModulePath.DLLFullName));
       if not FileExists(ConfigSample) and FileExists(DllSample) then
         Win32Check(CopyFile(PChar(string(DllSample)), PChar(string(ConfigSample)), True));
       if FileExists(ConfigSample) then
         FullPath := ConfigSample;
     end;
-    if not DoOpen(FullPath) then
+    if DoOpen(FullPath) then
       MessageBox(Npp.NppData.NppHandle, PChar(Format('Unable to open "%s".', [FullPath])), PChar(Caption), MB_ICONWARNING);
   except
     ShowException(ExceptObject, ExceptAddr);
@@ -228,18 +257,12 @@ const
   ncDlgId = 0;
 begin
   if (not Assigned(frmHTMLPreview)) then begin
-    frmHTMLPreview := TfrmHTMLPreview.Create(self, ncDlgId);
-    frmHTMLPreview.Show;
+    frmHTMLPreview := TfrmHTMLPreview.Create(self);
+    frmHTMLPreview.Show(self, ncDlgId);
   end else begin
-    if not frmHTMLPreview.Visible then
       frmHTMLPreview.Show
-    else
-      frmHTMLPreview.Hide
-    ;
   end;
-  if frmHTMLPreview.Visible then begin
     frmHTMLPreview.btnRefresh.Click;
-  end;
 end {TNppPluginPreviewHTML.CommandShowPreview};
 
 { ------------------------------------------------------------------------------------------------ }
@@ -252,13 +275,35 @@ end {TNppPluginPreviewHTML.GetSettings};
 
 { ------------------------------------------------------------------------------------------------ }
 procedure TNppPluginPreviewHTML.DoNppnToolbarModification;
+const
+  hNil = THandle(-1);
 var
   tb: TToolbarIcons;
+  tbDM: TTbIconsDarkMode;
+  hHDC: HDC;
+  bmpX, bmpY, icoX, icoY: Integer;
 begin
-  tb.ToolbarIcon := 0;
-  tb.ToolbarBmp := LoadImage(Hinstance, 'TB_PREVIEW_HTML', IMAGE_BITMAP, 0, 0, (LR_DEFAULTSIZE or LR_LOADMAP3DCOLORS));
-  SendMessage(self.NppData.NppHandle, NPPM_ADDTOOLBARICON, WPARAM(self.CmdIdFromDlgId(0)), LPARAM(@tb));
-
+  hHDC := hNil;
+  try
+    hHDC := GetDC(hNil);
+    bmpX := MulDiv(16, GetDeviceCaps(hHDC, LOGPIXELSX), 96);
+    bmpY := MulDiv(16, GetDeviceCaps(hHDC, LOGPIXELSY), 96);
+    icoX := MulDiv(32, GetDeviceCaps(hHDC, LOGPIXELSX), 96);
+    icoY := MulDiv(32, GetDeviceCaps(hHDC, LOGPIXELSY), 96);
+  finally
+    ReleaseDC(hNil, hHDC);
+  end;
+  tb.ToolbarIcon := LoadImage(Hinstance, 'TB_PREVIEW_HTML_ICO', IMAGE_ICON, icoX, icoY, (LR_DEFAULTSIZE or LR_LOADTRANSPARENT));
+  tb.ToolbarBmp := LoadImage(Hinstance, 'TB_PREVIEW_HTML', IMAGE_BITMAP, bmpX, bmpY, 0);
+  if SupportsDarkMode then begin
+    with tbDM do begin
+      ToolbarBmp := tb.ToolbarBmp;
+      ToolbarIcon := tb.ToolbarIcon;
+      ToolbarIconDarkMode := tb.ToolbarIcon;
+    end;
+    SendNppMessage(NPPM_ADDTOOLBARICON_FORDARKMODE, self.CmdIdFromDlgId(0), @tbDm);
+  end else
+    SendNppMessage(NPPM_ADDTOOLBARICON_DEPRECATED, self.CmdIdFromDlgId(0), @tb);
 //  SendMessage(self.NppData.ScintillaMainHandle, SCI_SETMODEVENTMASK, SC_MOD_INSERTTEXT or SC_MOD_DELETETEXT, 0);
 //  SendMessage(self.NppData.ScintillaSecondHandle, SCI_SETMODEVENTMASK, SC_MOD_INSERTTEXT or SC_MOD_DELETETEXT, 0);
 end {TNppPluginPreviewHTML.DoNppnToolbarModification};

@@ -1,23 +1,24 @@
-inherited AboutForm: TAboutForm
+object AboutForm: TAboutForm
   BorderIcons = []
-  BorderStyle = bsSizeable
+  BorderStyle = bsDialog
   Caption = 'About Preview HTML'
   ClientHeight = 256
+  ClientWidth = 300
   ParentFont = True
-  Position = poDesigned
+  Position = poScreenCenter
   OnCreate = FormCreate
   ExplicitHeight = 297
   PixelsPerInch = 96
   TextHeight = 14
   object lblBasedOn: TLabel
-    Left = 8
+    Left = 16
     Top = 96
     Width = 175
     Height = 14
     Caption = 'Based on the example plugin by'
   end
   object lblPlugin: TLabel
-    Left = 8
+    Left = 16
     Top = 8
     Width = 200
     Height = 14
@@ -25,33 +26,51 @@ inherited AboutForm: TAboutForm
     ShowAccelChar = False
   end
   object lblVersion: TLabel
-    Left = 189
+    Left = 196
     Top = 8
     Width = 46
     Height = 14
     Caption = 'v0.0.0.0'
   end
-  object lblAuthor: TLinkLabel
-    Left = 8
+  object lblAuthor: TLabel
+    Left = 16
     Top = 27
     Width = 248
     Height = 18
-    Caption = 
-      'by Martijn Coppoolse, <a href="mailto:vor0nwe@users.sf.net">vor0' +
-      'nwe@users.sf.net</a>'
-    TabOrder = 1
-    OnLinkClick = lblLinkClick
+    Caption = 'by Martijn Coppoolse,'
   end
-  object lblTribute: TLinkLabel
-    Left = 8
+  object lblAuthorContact: TLabel
+    Left = 123
+    Top = 27
+    Width = 248
+    Height = 8
+    Cursor = crHandPoint
+    Font.Color = clHighlight
+    Font.Style = [fsUnderline]
+    Font.Height = 14
+    Hint = 'mailto:vor0nwe@users.sf.net'
+    Caption = 'vor0nwe@users.sf.net'
+    OnClick = lblLinkClick
+  end
+  object lblTribute: TLabel
+    Left = 16
     Top = 115
     Width = 227
     Height = 18
-    Caption = 
-      'Damjan Zobo Cvetko, <a href="mailto:zobo@users.sf.net">zobo@user' +
-      's.sf.net</a>'
-    TabOrder = 3
-    OnLinkClick = lblLinkClick
+    Caption = 'Damjan Zobo Cvetko,'
+  end
+  object lblTributeContact: TLabel
+    Left = 122
+    Top = 115
+    Width = 227
+    Height = 8
+    Cursor = crHandPoint
+    Font.Color = clHighlight
+    Font.Style = [fsUnderline]
+    Font.Height = 14
+    Hint = 'mailto:zobo@users.sf.net'
+    Caption = 'zobo@users.sf.net'
+    OnClick = lblLinkClick
   end
   object btnOK: TButton
     Left = 136
@@ -65,24 +84,24 @@ inherited AboutForm: TAboutForm
     ModalResult = 1
     TabOrder = 0
   end
-  object lblURL: TLinkLabel
-    Left = 8
+  object lblURL: TLabel
+    Left = 16
     Top = 46
     Width = 200
-    Height = 18
+    Height = 8
     Cursor = crHandPoint
-    Caption = 
-      '<a href="https://fossil.2of4.net/npp_preview">https://fossil.2of' +
-      '4.net/npp_preview</a>'
-    TabOrder = 2
-    OnLinkClick = lblLinkClick
+    Font.Color = clHighlight
+    Font.Style = [fsUnderline]
+    Font.Height = 14
+    Hint = 'https://fossil.2of4.net/npp_preview'
+    Caption = 'https://fossil.2of4.net/npp_preview'
+    OnClick = lblLinkClick
   end
-  object lblIEVersion: TLinkLabel
-    Left = 8
+  object lblIEVersion: TLabel
+    Left = 16
     Top = 160
     Width = 223
     Height = 18
     Caption = 'Internet Explorer version %s is installed.'
-    TabOrder = 4
   end
 end

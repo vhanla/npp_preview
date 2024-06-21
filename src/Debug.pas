@@ -9,7 +9,7 @@ implementation
 uses
   Classes, SysUtils,
   Windows,
-  L_SpecialFolders;
+  ModulePath;
 
 var
   OutputLog: TStreamWriter;
@@ -20,7 +20,7 @@ begin
   OutputDebugString(PChar('PreviewHTML['+IntToHex(GetCurrentThreadId, 4)+']: ' + DebugOutput));
   {$IFDEF DEBUG}
   if OutputLog = nil then begin
-    OutputLog := TStreamWriter.Create(TFileStream.Create(ChangeFileExt(TSpecialFolders.DLLFullName, '.log'), fmCreate or fmShareDenyWrite), TEncoding.UTF8);
+    OutputLog := TStreamWriter.Create(TFileStream.Create(ChangeFileExt(TModulePath.DLLFullName, '.log'), fmCreate or fmShareDenyWrite), TEncoding.UTF8);
     OutputLog.OwnStream;
     OutputLog.BaseStream.Seek(0, soFromEnd);
   end;
