@@ -529,13 +529,13 @@ end;
 { ------------------------------------------------------------------------------------------------ }
 procedure TfrmHTMLPreview.FormDock(Sender: TObject);
 begin
-  SendMessage(self.Npp.NppData.NppHandle, NPPM_SETMENUITEMCHECK, self.CmdID, 1);
+  ResetTimer;
 end;
 
 { ------------------------------------------------------------------------------------------------ }
 procedure TfrmHTMLPreview.FormFloat(Sender: TObject);
 begin
-  SendMessage(self.Npp.NppData.NppHandle, NPPM_SETMENUITEMCHECK, self.CmdID, 1);
+  ResetTimer;
 end;
 
 { ------------------------------------------------------------------------------------------------ }
@@ -543,6 +543,7 @@ procedure TfrmHTMLPreview.FormShow(Sender: TObject);
 begin
   inherited;
   SendMessage(self.Npp.NppData.NppHandle, NPPM_SETMENUITEMCHECK, self.CmdID, 1);
+  ResetTimer;
 end;
 
 { ------------------------------------------------------------------------------------------------ }
@@ -686,8 +687,8 @@ end;
 procedure TfrmHTMLPreview.wbIEStatusTextChange(ASender: TObject; const Text: WideString);
 begin
   sbrIE.SimpleText := Text;
-//  sbrIE.Visible := Length(Text) > 0;
-//  if sbrIE.Visible then
+  sbrIE.Visible := Length(Text) > 0;
+  if sbrIE.Visible then
   sbrIE.Invalidate;
 end;
 
