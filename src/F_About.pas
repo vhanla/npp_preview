@@ -13,7 +13,7 @@ type
     lblTribute, lblTributeContact: TLabel;
     lblPlugin: TLabel;
     lblAuthor, lblAuthorContact: TLabel;
-    lblVersion: TLabel;
+    lblLicense: TLabel;
     lblURL: TLabel;
     lblIEVersion: TLabel;
     procedure FormCreate(Sender: TObject);
@@ -44,7 +44,7 @@ begin
   btnOK.Left := ((Self.Width div 2) - (btnOK.Width div 2) - 12);
   with TFileVersionInfo.Create(TModulePath.DLLFullName) do begin
     FVersionStr := Format('v%d.%d.%d.%d (%d-bit)', [MajorVersion, MinorVersion, Revision, Build, SizeOf(NativeInt)*8]);
-    lblVersion.Caption := FVersionStr;
+    lblPlugin.Caption := Format(lblPlugin.Caption, [FVersionStr]);
     Free;
   end;
 
@@ -57,13 +57,7 @@ var
   URL, Subject: string;
 begin
   URL := TLabel(Sender).Hint;
-  if StartsText('http', URL) then begin
-    with TFileVersionInfo.Create(TModulePath.DLLFullName) do begin
-      URL := URL + '?client=' + TIdURI.ParamsEncode(Format('%s/%s', [Internalname, FileVersion])) +
-                    '&version=' + TIdURI.ParamsEncode(Format('%d.%d.%d.%d', [MajorVersion, MinorVersion, Revision, Build]));
-      Free;
-    end;
-  end else if StartsText('mailto:', URL) then begin
+  if StartsText('mailto:', URL) then begin
     with TFileVersionInfo.Create(TModulePath.DLLFullName) do begin
       Subject := Self.Caption + Format(' %s', [FVersionStr]);
       Free;
