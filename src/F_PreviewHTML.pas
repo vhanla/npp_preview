@@ -63,6 +63,7 @@ type
     procedure FilterThreadTerminate(Sender: TObject);
   public
     { Public declarations }
+    PrevTimerID: UIntPtr;
     constructor Create(AOwner: TComponent); override;
     procedure ToggleDarkMode; override;
     procedure ResetTimer;
@@ -80,6 +81,15 @@ uses
   RegExpr, ModulePath,
   Debug,
   U_Npp_PreviewHTML;
+
+procedure PreviewRefreshTimer(WndHandle: HWND; Msg: UINT; EventID: UINT; TimeMS: UINT); stdcall;
+begin
+  if Assigned(frmHTMLPreview) then
+  begin
+    frmHTMLPreview.btnRefresh.Click;
+    KillTimer(frmHTMLPreview.Handle, EventID);
+  end;
+end;
 
 {$R *.dfm}
 
@@ -479,7 +489,6 @@ begin
   {--- 2013-01-26 Martijn: Create a new TCustomFilterThread ---}
   FFilterThread := TCustomFilterThread.Create(FilterData);
   Result := Assigned(FFilterThread);
-  FFilterThread.WaitFor;
 end {TfrmHTMLPreview.ExecuteCustomFilter};
 
 { ------------------------------------------------------------------------------------------------ }
@@ -487,8 +496,12 @@ procedure TfrmHTMLPreview.FilterThreadTerminate(Sender: TObject);
 begin
 ODS('FilterThreadTerminate');
 if (Sender as TThread).FatalException is Exception then
+begin
   ODS('Fatal %s: "%s"', [((Sender as TThread).FatalException as Exception).ClassName, ((Sender as TThread).FatalException as Exception).Message]);
-
+end else
+begin
+   PrevTimerID := SetTimer(Handle, 0, tmrAutorefresh.Interval, @PreviewRefreshTimer);
+end;
   FFilterThread := nil;
 end {TfrmHTMLPreview.FilterThreadTerminate};
 
@@ -699,5 +712,11 @@ begin
   self.UpdateDisplayInfo(StringReplace(Text, 'about:blank', '', [rfReplaceAll]));
 end;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+initialization
+
+finalization
+  if Assigned(frmHTMLPreview) then
+    KillTimer(frmHTMLPreview.Handle, frmHTMLPreview.PrevTimerID);
 
 end.

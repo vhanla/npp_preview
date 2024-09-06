@@ -210,12 +210,10 @@ begin
   try
     FullPath := Npp.ConfigDir + '\PreviewHTML\' + Filename;
     if not FileExists(FullPath) then begin
-      ConfigSample := ChangeFileExt(FullPath, '.sample' + ExtractFileExt(FullPath));
-      DllSample := ChangeFilePath(ConfigSample, ExtractFileDir(TModulePath.DLLFullName));
-      if not FileExists(ConfigSample) and FileExists(DllSample) then
-        Win32Check(CopyFile(PChar(string(DllSample)), PChar(string(ConfigSample)), True));
-      if FileExists(ConfigSample) then
-        FullPath := ConfigSample;
+      ConfigSample := ChangeFileExt(Filename, '.sample' + ExtractFileExt(FullPath));
+      DllSample := ExtractFilePath(TModulePath.DLLFullName) + ConfigSample;
+      if FileExists(DllSample) then
+        Win32Check(CopyFile(PChar(string(DllSample)), PChar(string(FullPath)), True));
     end;
     if DoOpen(FullPath) then
       MessageBox(Npp.NppData.NppHandle, PChar(Format('Unable to open "%s".', [FullPath])), PChar(Caption), MB_ICONWARNING);
