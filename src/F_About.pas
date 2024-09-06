@@ -13,7 +13,7 @@ type
     lblTribute, lblTributeContact: TLabel;
     lblPlugin: TLabel;
     lblAuthor, lblAuthorContact: TLabel;
-    lblLicense: TLabel;
+    lblFcl, lblFclAuthors, lblLicense, lblFclLicense: TLabel;
     lblURL: TLabel;
     lblIEVersion: TLabel;
     procedure FormCreate(Sender: TObject);

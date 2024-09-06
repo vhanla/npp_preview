@@ -18,6 +18,7 @@ SETLOCAL
 set "VERSION=1.3.3.0"
 set "PLUGIN=PreviewHTML"
 set "CONFIG_DIR=.\src\Config"
+set "FPC_DIR=.\out\3RD-PARTY"
 set "PLUGIN_DLL=.\out\Win32\Release\%PLUGIN%.dll"
 set "PLUGINX64_DLL=.\out\Win64\Release\%PLUGIN%.dll"
 set "SLUG_NAME=.\out\%PLUGIN%_v%VERSION%_win32"
@@ -28,7 +29,8 @@ set "SLUGX64=%SLUGX64_NAME%.zip"
 del /S /Q /F .\out\*.zip 2>NUL:
 call %~dp0build.cmd
 
-7z a -tzip "%SLUG%" "%PLUGIN_DLL%" *.txt %CONFIG_DIR%\*.ini -y
-7z a -tzip "%SLUGX64%" "%PLUGINX64_DLL%" *.txt %CONFIG_DIR%\*.ini -y
+xcopy /DIY src\common\COPYING* %FPC_DIR%
+7z a -tzip "%SLUG%" "%PLUGIN_DLL%" *.txt %CONFIG_DIR%\*.ini %FPC_DIR% -y
+7z a -tzip "%SLUGX64%" "%PLUGINX64_DLL%" *.txt %CONFIG_DIR%\*.ini %FPC_DIR% -y
 
 ENDLOCAL

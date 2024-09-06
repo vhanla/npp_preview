@@ -36,7 +36,7 @@ object AboutForm: TAboutForm
     Caption = ''#169' 2024                            (current version)'
   end
   object lblAuthorContact: TLabel
-    Left = 63
+    Left = 60
     Top = 54
     Width = 83
     Height = 15
@@ -53,14 +53,14 @@ object AboutForm: TAboutForm
   end
   object lblTribute: TLabel
     Left = 16
-    Top = 81
+    Top = 78
     Width = 224
     Height = 15
     Caption = 'Using the Delphi plugin template, '#169' 2008 '
   end
   object lblTributeContact: TLabel
-    Left = 243
-    Top = 81
+    Left = 240
+    Top = 78
     Width = 112
     Height = 15
     Cursor = crHandPoint
@@ -76,14 +76,35 @@ object AboutForm: TAboutForm
   end
   object lblLicense: TLabel
     Left = 16
-    Top = 102
+    Top = 96
     Width = 259
     Height = 15
     Caption = 'Licensed under the GNU General Public License, Version 3 or later'
   end
+  object lblFcl: TLabel
+    Left = 16
+    Top = 120
+    Width = 256
+    Height = 15
+    Caption = 'Also using the Free Component Library (FCL)'
+  end  
+  object lblFclAuthors: TLabel
+    Left = 16
+    Top = 138
+    Width = 256
+    Height = 15
+    Caption = #169' 1999-2008 the Free Pascal development team'
+  end  
+  object lblFclLicense: TLabel
+    Left = 16
+    Top = 156
+    Width = 256
+    Height = 15
+    Caption = 'Licensed under the FPC modified LGPL Version 2'
+  end  
   object btnOK: TButton
     Left = 138
-    Top = 205
+    Top = 224
     Width = 92
     Height = 25
     Cancel = True
@@ -94,7 +115,7 @@ object AboutForm: TAboutForm
   end
   object lblURL: TLabel
     Left = 16
-    Top = 123
+    Top = 178
     Width = 150
     Height = 15
     Cursor = crHandPoint
@@ -110,7 +131,7 @@ object AboutForm: TAboutForm
   end
   object lblIEVersion: TLabel
     Left = 16
-    Top = 168
+    Top = 198
     Width = 207
     Height = 15
     Caption = 'Internet Explorer version %s is installed.'
