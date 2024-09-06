@@ -1,6 +1,11 @@
 Preview HTML plugin for Notepad++
 =================================
 
+v1.3.3.1, 2024-09-06
+--------------------
+- Fixed: custom filters do not execute on the UI thread anymore
+- Fixed: when `filters.ini` does not exist, the template is copied *without* "`sample`" in the file name
+
 v1.3.3.0, 2024-07-31
 --------------------
 - Changed host to GitHub

@@ -15,7 +15,7 @@
 ::
 SETLOCAL
 
-set "VERSION=1.3.3.0"
+set "VERSION=1.3.3.1"
 set "PLUGIN=PreviewHTML"
 set "CONFIG_DIR=.\src\Config"
 set "FPC_DIR=.\out\3RD-PARTY"
