@@ -1,6 +1,10 @@
 Preview HTML plugin for Notepad++
 =================================
 
+v1.3.3.2, 2024-11-16
+--------------------
+- Fixed: previewing an empty file in Notepad++ 8.4 or newer will no longer crash the application
+
 v1.3.3.1, 2024-09-06
 --------------------
 - Fixed: custom filters do not execute on the UI thread anymore
