@@ -188,6 +188,7 @@ ODS('FreeAndNil(FFilterThread);');
       if IsXML or IsHTML or IsCustom then begin
         CodePage := SendMessage(hScintilla, SCI_GETCODEPAGE, 0, 0);
         Size := SendMessage(hScintilla, SCI_GETTEXT, 0, 0);
+        Inc(Size);
         SetLength(Content, Size);
         SendMessage(hScintilla, SCI_GETTEXT, Size, LPARAM(PAnsiChar(Content)));
         if CodePage = CP_ACP then begin
