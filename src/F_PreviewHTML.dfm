@@ -12,7 +12,7 @@ object frmHTMLPreview: TfrmHTMLPreview
   OnHide = FormHide
   OnKeyPress = FormKeyPress
   OnShow = FormShow
-  TextHeight = 25
+  TextHeight = 15
   object pnlButtons: TPanel
     Left = 0
     Top = 364
@@ -51,8 +51,6 @@ object frmHTMLPreview: TfrmHTMLPreview
       Height = 19
       Panels = <>
       SimplePanel = True
-      ExplicitTop = 42
-      ExplicitWidth = 484
     end
     object btnAbout: TButton
       Left = 372
@@ -84,8 +82,6 @@ object frmHTMLPreview: TfrmHTMLPreview
     BevelOuter = bvNone
     Caption = '(no preview available)'
     TabOrder = 1
-    ExplicitWidth = 490
-    ExplicitHeight = 327
     object pnlHTML: TPanel
       Left = 0
       Top = 0
@@ -95,30 +91,18 @@ object frmHTMLPreview: TfrmHTMLPreview
       BevelOuter = bvNone
       Caption = 'pnlHTML'
       TabOrder = 0
-      ExplicitWidth = 490
-      ExplicitHeight = 327
-      object wbIE: TWebBrowser
+      object WVWindowParent1: TWVWindowParent
         Left = 0
         Top = 0
         Width = 504
         Height = 364
-        TabStop = False
         Align = alClient
         TabOrder = 0
-        OnStatusTextChange = wbIEStatusTextChange
-        OnTitleChange = wbIETitleChange
-        OnBeforeNavigate2 = wbIEBeforeNavigate2
-        OnDocumentComplete = wbIEDocumentComplete
-        OnStatusBar = wbIEStatusBar
-        OnNewWindow3 = wbIENewWindow3
-        ExplicitWidth = 490
-        ExplicitHeight = 327
-        ControlData = {
-          4C000000BA220000151900000000000000000000000000000000000000000000
-          000000004C000000000000000000000001000000E0D057007335CF11AE690800
-          2B2E12620B000000000000004C0000000114020000000000C000000000000046
-          8000000000000000000000000000000000000000000000000000000000000000
-          00000000000000000100000000000000000000000000000000000000}
+        Browser = WVBrowser1
+        ExplicitLeft = 128
+        ExplicitTop = 128
+        ExplicitWidth = 100
+        ExplicitHeight = 41
       end
     end
   end
@@ -127,5 +111,20 @@ object frmHTMLPreview: TfrmHTMLPreview
     OnTimer = tmrAutorefreshTimer
     Left = 448
     Top = 16
+  end
+  object WVBrowser1: TWVBrowser
+    TargetCompatibleBrowserVersion = '125.0.2535.41'
+    AllowSingleSignOnUsingOSPrimaryAccount = False
+    OnInitializationError = WVBrowser1InitializationError
+    OnAfterCreated = WVBrowser1AfterCreated
+    OnDocumentTitleChanged = WVBrowser1DocumentTitleChanged
+    Left = 248
+    Top = 216
+  end
+  object Timer1: TTimer
+    Enabled = False
+    OnTimer = Timer1Timer
+    Left = 184
+    Top = 216
   end
 end

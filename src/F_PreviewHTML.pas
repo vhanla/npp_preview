@@ -8,13 +8,13 @@ uses
   Dialogs, StdCtrls, SHDocVw, OleCtrls, ComCtrls, ExtCtrls, IniFiles,
   NppPlugin, NppDockingForms,
   WebBrowser,
-  U_CustomFilter;
+  U_CustomFilter, uWVBrowserBase, uWVBrowser, uWVWinControl, uWVWindowParent, uWVTypes, uWVConstants,
+  uWVTypeLibrary, uWVLibFunctions, uWVLoader, uWVInterfaces, uWVCoreWebView2Args;
 
 type
   TBufferID = NativeInt;
 
   TfrmHTMLPreview = class(TNppDockingForm)
-    wbIE: TWebBrowser;
     pnlButtons: TPanel;
     btnRefresh: TButton;
     btnClose: TButton;
@@ -24,6 +24,9 @@ type
     btnAbout: TButton;
     tmrAutorefresh: TTimer;
     chkFreeze: TCheckBox;
+    WVWindowParent1: TWVWindowParent;
+    WVBrowser1: TWVBrowser;
+    Timer1: TTimer;
     procedure btnRefreshClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -45,6 +48,11 @@ type
     procedure tmrAutorefreshTimer(Sender: TObject);
     procedure chkFreezeClick(Sender: TObject);
     procedure wbIEDocumentComplete(ASender: TObject; const pDisp: IDispatch; const URL: OleVariant);
+    procedure WVBrowser1AfterCreated(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+    procedure WVBrowser1InitializationError(Sender: TObject;
+      aErrorCode: HRESULT; const aErrorMessage: wvstring);
+    procedure WVBrowser1DocumentTitleChanged(Sender: TObject);
   private
     { Private declarations }
     FBufferID: TBufferID;
@@ -61,6 +69,9 @@ type
     function  TransformXMLToHTML(const XML: WideString): string;
 
     procedure FilterThreadTerminate(Sender: TObject);
+  protected
+    procedure WMMove(var aMessage: TWMMove); message WM_MOVE;
+    procedure WMMoving(var aMessage: TMessage); message WM_MOVING;
   public
     { Public declarations }
     PrevTimerID: UIntPtr;
@@ -205,11 +216,11 @@ ODS('FreeAndNil(FFilterThread);');
 
       if IsCustom then begin
 //MessageBox(Npp.NppData.NppHandle, PChar(Format('FilterName: %s', [FilterName])), 'PreviewHTML', MB_ICONINFORMATION);
-        wbIEStatusTextChange(wbIE, Format('Running filter %s...', [FilterName]));
+        wbIEStatusTextChange(Sender, Format('Running filter %s...', [FilterName]));
         if ExecuteCustomFilter(FilterName, HTML, BufferID) then begin
           Exit;
         end else begin
-          wbIEStatusTextChange(wbIE, Format('Failed filter %s...', [FilterName]));
+          wbIEStatusTextChange(Sender, Format('Failed filter %s...', [FilterName]));
           HTML := '<pre style="color: darkred">ExecuteCustomFilter returned False</pre>';
         end;
       end else if IsXML then begin
@@ -265,11 +276,11 @@ ODS('DisplayPreview(HTML: "%s"(%d); BufferID: %x)', [StringReplace(Copy(HTML, 1,
         Insert('<base href="' + Filename + '" />', HTML, HeadStart);
       end;
 
-      wbIE.LoadDocFromString(HTML);
+      WVBrowser1.NavigateToString(HTML);
 
-      if wbIE.GetDocument <> nil then
-        self.UpdateDisplayInfo(wbIE.GetDocument.title)
-      else
+//      if wbIE.GetDocument <> nil then
+//        self.UpdateDisplayInfo(wbIE.GetDocument.title)
+//      else
         self.UpdateDisplayInfo('');
 
       {--- 2013-01-26 Martijn: the WebBrowser control has a tendency to steal the focus. We'll let
@@ -308,17 +319,69 @@ begin
   if FBufferID = -1 then
     Exit;
 
-  if Assigned(wbIE.Document) and Assigned((wbIE.Document as IHTMLDocument3).documentElement) then begin
-    docEl := (wbIE.Document as IHTMLDocument3).documentElement AS IHTMLElement2;
-    P.Y := docEl.scrollTop;
-    P.X := docEl.scrollLeft;
-    FScrollPositions.AddOrSetValue(FBufferID, P);
-    ODS('SaveScrollPos[%x]: %dx%d', [FBufferID, P.X, P.Y]);
-  end else begin
-    FScrollPositions.Remove(FBufferID);
-    ODS('SaveScrollPos[%x]: --', [FBufferID]);
-  end;
+//  if Assigned(wbIE.Document) and Assigned((wbIE.Document as IHTMLDocument3).documentElement) then begin
+//    docEl := (wbIE.Document as IHTMLDocument3).documentElement AS IHTMLElement2;
+//    P.Y := docEl.scrollTop;
+//    P.X := docEl.scrollLeft;
+//    FScrollPositions.AddOrSetValue(FBufferID, P);
+//    ODS('SaveScrollPos[%x]: %dx%d', [FBufferID, P.X, P.Y]);
+//  end else begin
+//    FScrollPositions.Remove(FBufferID);
+//    ODS('SaveScrollPos[%x]: --', [FBufferID]);
+//  end;
 end {TfrmHTMLPreview.SaveScrollPos};
+
+procedure TfrmHTMLPreview.Timer1Timer(Sender: TObject);
+begin
+
+  Timer1.Enabled := False;
+
+  if GlobalWebView2Loader.Initialized then
+    WVBrowser1.CreateBrowser(WVWindowParent1.Handle)
+  else
+    Timer1.Enabled := True;
+end;
+
+{//************ Explanation ***************
+This Delphi code snippet, `TfrmHTMLPreview.SaveScrollPos`, is designed to save the scroll position of an HTML document displayed within a web browser control (`wbIE`). Here's a breakdown of its functionality:
+
+**Purpose:**
+
+The procedure aims to preserve the user's scroll position within a specific HTML document. This is likely part of a larger application that displays multiple HTML documents and needs to remember the user's viewing position in each.
+
+**Code Breakdown:**
+
+1.  **Variable Declarations:**
+    *   `docEl: IHTMLElement2;`: Declares a variable `docEl` to hold a reference to an HTML element, specifically the root element of the document. `IHTMLElement2` is an interface that provides access to properties and methods related to HTML elements.
+    *   `P: TPoint;`: Declares a `TPoint` variable `P` to store the x and y scroll positions.
+
+2.  **Initialization:**
+    *   `FScrollTop := -1;`: Sets a class member variable `FScrollTop` to -1. This variable likely represents the top scroll position. Initializing to -1 suggests it's being reset or invalidated.
+    *   `FScrollLeft := -1;`: Similar to `FScrollTop`, sets the class member variable `FScrollLeft` to -1, representing the left scroll position.
+
+3.  **Early Exit Condition:**
+    *   `if FBufferID = -1 then Exit;`: Checks the value of `FBufferID`. If it's -1, the procedure exits immediately. This suggests that `FBufferID` acts as an identifier for a specific HTML document (likely within a buffer system). If it's -1, it means there's no valid buffer currently being processed.
+
+4.  **Accessing the HTML Document and its Root Element:**
+    *   `if Assigned(wbIE.Document) and Assigned((wbIE.Document as IHTMLDocument3).documentElement) then begin`: This condition checks two crucial things:
+        *   `Assigned(wbIE.Document)`: It checks if the web browser control (`wbIE`) has a document loaded. `Assigned` is a Delphi function that checks if a pointer or interface is not `nil`.
+        *   `Assigned((wbIE.Document as IHTMLDocument3).documentElement)`: If `wbIE.Document` is valid, it attempts to cast it to the `IHTMLDocument3` interface (which provides more detailed access to the document) and checks if the document has a valid root element (`documentElement`).
+    *   If both conditions are true, the following block executes:
+        *   `docEl := (wbIE.Document as IHTMLDocument3).documentElement AS IHTMLElement2;`: Retrieves the document's root element (usually the `<html>` tag) and casts it to the `IHTMLElement2` interface.
+        *   `P.Y := docEl.scrollTop;`: Reads the vertical scroll position of the root element and stores it in `P.Y`.
+        *   `P.X := docEl.scrollLeft;`: Reads the horizontal scroll position of the root element and stores it in `P.X`.
+        *   `FScrollPositions.AddOrSetValue(FBufferID, P);`: Saves the scroll position (`P`) associated with the current document identified by `FBufferID`. `FScrollPositions` is likely a data structure (e.g., a dictionary or hashmap) that stores scroll positions for multiple document buffers. The `AddOrSetValue` method either adds a new entry if the `FBufferID` doesn't exist or updates an existing entry.
+        *   `ODS('SaveScrollPos[%x]: %dx%d', [FBufferID, P.X, P.Y]);`: Outputs a debug message using `ODS` (Output Debug String) function, displaying the `FBufferID` and the saved horizontal (`P.X`) and vertical (`P.Y`) scroll positions. This helps in tracking the scroll positions during debugging.
+
+5.  **Handling Cases Where the Document or Root Element is Invalid:**
+    *   `else begin`: If either `wbIE.Document` or its `documentElement` is not assigned, this `else` block executes.
+        *   `FScrollPositions.Remove(FBufferID);`: Removes any existing scroll position entry for the current `FBufferID` from the `FScrollPositions` data structure, since there's no valid document to retrieve the position from.
+        *   `ODS('SaveScrollPos[%x]: --', [FBufferID]);`: Outputs a debug message indicating that the scroll position was not saved because the document is invalid.
+
+**In Summary:**
+
+The `SaveScrollPos`
+}
 
 { ------------------------------------------------------------------------------------------------ }
 procedure TfrmHTMLPreview.RestoreScrollPos(const BufferID: TBufferID);
@@ -332,12 +395,12 @@ begin
     FScrollTop := P.Y;
     FScrollLeft := P.X;
     ODS('RestoreScrollPos[%x]: %dx%d', [BufferID, P.X, P.Y]);
-    if (FScrollTop <> -1) and Assigned(wbIE.Document) and Assigned((wbIE.Document as IHTMLDocument3).documentElement) then begin
-      docEl := (wbIE.Document as IHTMLDocument3).documentElement as IHTMLElement2;
-      docEl.scrollTop := FScrollTop;
-      docEl.scrollLeft := FScrollLeft;
-      ODS('RestoreScrollPos: done!');
-    end;
+//    if (FScrollTop <> -1) and Assigned(wbIE.Document) and Assigned((wbIE.Document as IHTMLDocument3).documentElement) then begin
+//      docEl := (wbIE.Document as IHTMLDocument3).documentElement as IHTMLElement2;
+//      docEl.scrollTop := FScrollTop;
+//      docEl.scrollLeft := FScrollLeft;
+//      ODS('RestoreScrollPos: done!');
+//    end;
   end else begin
     ODS('RestoreScrollPos[%x]: --', [BufferID]);
   end;
@@ -558,6 +621,14 @@ begin
   inherited;
   SendMessage(self.Npp.NppData.NppHandle, NPPM_SETMENUITEMCHECK, self.CmdID, 1);
   ResetTimer;
+
+  if GlobalWebView2Loader.InitializationError then
+    ShowMessage(GlobalWebView2Loader.ErrorMessage)
+  else
+    if GlobalWebView2Loader.Initialized then
+      WVBrowser1.CreateBrowser(WVWindowParent1.Handle)
+    else
+      Timer1.Enabled := True;
 end;
 
 { ------------------------------------------------------------------------------------------------ }
@@ -666,13 +737,13 @@ procedure TfrmHTMLPreview.wbIEDocumentComplete(ASender: TObject; const pDisp: ID
 var
   docEl: IHTMLElement2;
 begin
-  if (FScrollTop <> -1) and Assigned(wbIE.Document) and Assigned((wbIE.Document as IHTMLDocument3).documentElement) then begin
-    docEl := (wbIE.Document as IHTMLDocument3).documentElement as IHTMLElement2;
-    docEl.scrollTop := FScrollTop;
-    docEl.scrollLeft := FScrollLeft;
-    FScrollTop := -1;
-    FScrollLeft := -1;
-  end;
+//  if (FScrollTop <> -1) and Assigned(wbIE.Document) and Assigned((wbIE.Document as IHTMLDocument3).documentElement) then begin
+//    docEl := (wbIE.Document as IHTMLDocument3).documentElement as IHTMLElement2;
+//    docEl.scrollTop := FScrollTop;
+//    docEl.scrollLeft := FScrollLeft;
+//    FScrollTop := -1;
+//    FScrollLeft := -1;
+//  end;
 end {TfrmHTMLPreview.wbIEDocumentComplete};
 
 { ------------------------------------------------------------------------------------------------ }
@@ -713,8 +784,47 @@ begin
   self.UpdateDisplayInfo(StringReplace(Text, 'about:blank', '', [rfReplaceAll]));
 end;
 
+procedure TfrmHTMLPreview.WMMove(var aMessage: TWMMove);
+begin
+  inherited;
+
+  if (WVBrowser1 <> nil) then
+    WVBrowser1.NotifyParentWindowPositionChanged;
+
+end;
+
+procedure TfrmHTMLPreview.WMMoving(var aMessage: TMessage);
+begin
+  inherited;
+
+  if (WVBrowser1 <> nil) then
+    WVBrowser1.NotifyParentWindowPositionChanged;
+end;
+
+procedure TfrmHTMLPreview.WVBrowser1AfterCreated(Sender: TObject);
+begin
+//  inherited;
+  WVWindowParent1.UpdateSize;
+  WVWindowParent1.SetFocus;
+end;
+
+procedure TfrmHTMLPreview.WVBrowser1DocumentTitleChanged(Sender: TObject);
+begin
+  inherited;
+  self.UpdateDisplayInfo(StringReplace(Text, 'about:blank', '', [rfReplaceAll]));
+end;
+
+procedure TfrmHTMLPreview.WVBrowser1InitializationError(Sender: TObject;
+  aErrorCode: HRESULT; const aErrorMessage: wvstring);
+begin
+  ShowMessage(aErrorMessage);
+end;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 initialization
+  GlobalWebView2Loader                := TWVLoader.Create(nil);
+  GlobalWebView2Loader.UserDataFolder := 'C:\NPPPreview\Cache';
+  GlobalWebView2Loader.StartWebView2;
 
 finalization
   if Assigned(frmHTMLPreview) then
